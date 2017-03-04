@@ -87,7 +87,8 @@ public class BarcodeGraphic extends GraphicOverlay.Graphic {
         canvas.drawText(barcode.rawValue, rect.left, rect.bottom, mTextPaint);
     }
 
-    public String barcodeURL() {
+    public String barcodeRawValue() {
+        android.util.Log.e("BarcodeGraphic", mBarcode.rawValue);
         return mBarcode.rawValue;
     }
 }

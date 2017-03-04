@@ -10,6 +10,8 @@ import com.google.android.gms.vision.text.Text;
 import com.google.android.gms.vision.text.TextBlock;
 
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Graphic instance for rendering TextBlock position, size, and ID within an associated graphic
@@ -18,6 +20,11 @@ import java.util.List;
 public class OcrGraphic extends GraphicOverlay.Graphic {
 
     private int mId;
+
+    private static final String INVOICE_NO = "INVOICE NO.";
+    private static final Pattern pattern = Pattern.compile("\\s*INVOICE\\s*NO.\\s*(\\d+)\\s*");
+    private Matcher matcher;
+    private String invoiceNo;
 
     private static final int TEXT_COLOR = Color.WHITE;
 
@@ -99,9 +106,19 @@ public class OcrGraphic extends GraphicOverlay.Graphic {
         // Break the text into multiple lines and draw each one according to its own bounding box.
         List<? extends Text> textComponents = text.getComponents();
         for(Text currentText : textComponents) {
+
             float left = translateX(currentText.getBoundingBox().left);
             float bottom = translateY(currentText.getBoundingBox().bottom);
             canvas.drawText(currentText.getValue(), left, bottom, sTextPaint);
+            String recognisedText = "currentText: " + currentText.getValue();
+            android.util.Log.e("OcrGraphic", recognisedText);
+
+            matcher = pattern.matcher(currentText.getValue());
+            if(matcher.matches()){
+                invoiceNo = matcher.group(1);
+                String output = "invoiceNo: " + invoiceNo;
+                android.util.Log.e("OcrGraphic", output);
+            }
         }
     }
 }

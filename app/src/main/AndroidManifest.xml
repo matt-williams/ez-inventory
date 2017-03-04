@@ -25,17 +25,10 @@
              </intent-filter>
          </activity>
 
-         <activity android:name=".BarcodeReader">
-             <intent-filter>
-                 <action android:name="android.intent.action.SCANBARCODE" />
-                 <category android:name="android.intent.category.DEFAULT" />
-             </intent-filter>
-         </activity>
-
-         <activity android:name=".MainActivity"></activity>
-         <activity android:name=".BarcodeCaptureActivity"></activity>
-         <activity android:name=".OcrMainActivity"></activity>
-         <activity android:name=".OcrCaptureActivity"></activity>
+         <activity android:name=".BarcodeMainActivity"/>
+         <activity android:name=".BarcodeCaptureActivity"/>
+         <activity android:name=".OcrMainActivity"/>
+         <activity android:name=".OcrCaptureActivity"/>
 
 </application>
 

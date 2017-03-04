@@ -58,7 +58,7 @@ public class Locator extends AppCompatActivity {
         btnBarcode.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent scanBarcode = new Intent(Locator.this, MainActivity.class);
+                Intent scanBarcode = new Intent(Locator.this, BarcodeMainActivity.class);
                 startActivity(scanBarcode);
             }
         });
