@@ -2,7 +2,7 @@ package com.github.yinyee.locator;
 
 import android.app.Application;
 
-public class Estimote extends Application {
+public class EZLocator extends Application {
 
 
 }

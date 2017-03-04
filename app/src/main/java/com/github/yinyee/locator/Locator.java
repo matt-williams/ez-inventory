@@ -7,6 +7,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 
 import com.estimote.sdk.Beacon;
@@ -43,11 +45,32 @@ public class Locator extends AppCompatActivity {
     private static int GOODS_OUT_RSSI;
     private BeaconManager beaconManager;
 
+    private Button btnBarcode;
+    private Button btnOCR;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_locator);
+
+        btnBarcode = (Button) findViewById(R.id.btn_barcode);
+        btnBarcode.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent scanBarcode = new Intent(Locator.this, MainActivity.class);
+                startActivity(scanBarcode);
+            }
+        });
+
+        btnOCR = (Button) findViewById(R.id.btn_ocr);
+        btnOCR.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v){
+                Intent readTextFromImage = new Intent(Locator.this, OcrMainActivity.class);
+                startActivity(readTextFromImage);
+            }
+        });
 
         beaconManager = new BeaconManager(getApplicationContext());
 
@@ -92,10 +115,10 @@ public class Locator extends AppCompatActivity {
                     }
                 }
 
-                android.util.Log.e("Locator", "GOODS_IN_PROXIMITY: " + GOODS_IN_PROXIMITY);
-                android.util.Log.e("Locator", "GOODS_OUT_PROXIMITY: " + GOODS_OUT_PROXIMITY);
-                android.util.Log.e("Locator", "GOODS_IN_RSSI: " + GOODS_IN_RSSI);
-                android.util.Log.e("Locator", "GOODS_OUT_RSSI: " + GOODS_OUT_RSSI);
+//                android.util.Log.e("Locator", "GOODS_IN_PROXIMITY: " + GOODS_IN_PROXIMITY);
+//                android.util.Log.e("Locator", "GOODS_OUT_PROXIMITY: " + GOODS_OUT_PROXIMITY);
+//                android.util.Log.e("Locator", "GOODS_IN_RSSI: " + GOODS_IN_RSSI);
+//                android.util.Log.e("Locator", "GOODS_OUT_RSSI: " + GOODS_OUT_RSSI);
 
                 String display = "Location is set to: " + location;
                 ((TextView) findViewById(R.id.location)).setText(display);
@@ -111,7 +134,7 @@ public class Locator extends AppCompatActivity {
 
     public void showNotification(String title, String message) {
 
-        Intent notifyIntent = new Intent(this, Estimote.class);
+        Intent notifyIntent = new Intent(this, EZLocator.class);
         notifyIntent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
 
         PendingIntent pendingIntent = PendingIntent.getActivities(this, 0, new Intent[] { notifyIntent }, PendingIntent.FLAG_UPDATE_CURRENT);
