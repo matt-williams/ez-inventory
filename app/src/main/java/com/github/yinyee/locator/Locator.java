@@ -16,6 +16,9 @@ import com.estimote.sdk.BeaconManager;
 import com.estimote.sdk.Region;
 import com.estimote.sdk.SystemRequirementsChecker;
 import com.estimote.sdk.Utils;
+import com.github.yinyee.locator.quickbooks.Constants;
+import com.github.yinyee.locator.quickbooks.Invoice;
+import com.github.yinyee.locator.quickbooks.QuickBooksApi;
 
 import java.util.List;
 import java.util.UUID;
@@ -124,6 +127,21 @@ public class Locator extends AppCompatActivity {
                 ((TextView) findViewById(R.id.location)).setText(display);
             }
         });
+
+        QuickBooksApi api = new QuickBooksApi.Authenticator(Constants.OAUTH_CONSUMER_KEY, Constants.OAUTH_CONSUMER_SECRET).authenticate();
+        new QuickBooksApi.GetInvoiceTask(api, Constants.REALM_ID) {
+            @Override
+            protected void onPostExecute(Invoice invoice) {
+                android.util.Log.e("MainActivity", invoice.id + " - " + invoice.lines.get(0).description);
+            }
+        }.execute("124");
+        new QuickBooksApi.QueryInvoicesTask(api, Constants.REALM_ID) {
+            @Override
+            protected void onPostExecute(List<Invoice> invoices) {
+                android.util.Log.e("MainActivity", "How many invoices? " + invoices.size());
+            }
+        }.execute();
+
     }
 
     @Override
