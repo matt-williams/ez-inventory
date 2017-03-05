@@ -60,11 +60,13 @@ public class Locator extends AppCompatActivity implements AdapterView.OnItemSele
     private static int GOODS_OUT_RSSI;
     private BeaconManager beaconManager;
     private int mode;
+    private Bundle mSavedInstanceState;
 
     @Override
-    public void onCreate(final Bundle savedInstanceState) {
+    public void onCreate(Bundle savedInstanceState) {
 
         super.onCreate(savedInstanceState);
+        mSavedInstanceState = new Bundle();
         setContentView(R.layout.activity_locator);
 
         Spinner spinner = (Spinner) findViewById(R.id.location_detection_mode);
@@ -79,10 +81,12 @@ public class Locator extends AppCompatActivity implements AdapterView.OnItemSele
             public void onClick(View v) {
                 String loc = ((TextView) findViewById(R.id.location)).getText().toString();
                 Intent goToOCR = new Intent(Locator.this, OcrCaptureActivity.class);
-                savedInstanceState.putString("LOCATION_CONTEXT", loc);
-                savedInstanceState.putString("DETECT_MODE", String.valueOf(mode));
-                goToOCR.putExtras(savedInstanceState);
-                startActivity(goToOCR);
+                android.util.Log.e("Locator", "location: ");
+                android.util.Log.e("Locator", loc);
+                mSavedInstanceState.putString("LOCATION_CONTEXT", loc);
+                mSavedInstanceState.putString("DETECT_MODE", String.valueOf(mode));
+                goToOCR.putExtras(mSavedInstanceState);
+                startActivity(goToOCR, mSavedInstanceState);
             }
         });
 
