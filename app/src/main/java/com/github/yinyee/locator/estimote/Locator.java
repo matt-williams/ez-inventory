@@ -162,7 +162,7 @@ public class Locator extends AppCompatActivity implements AdapterView.OnItemSele
             new QuickBooksApi.CheckConnectionTask(api) {
                 @Override
                 protected void onPostExecute(Boolean success) {
-                    if (success) {
+                    if (Boolean.TRUE.equals(success)) {
                         initializeBeacons();
                     } else {
                         startActivity(new Intent(Locator.this, AuthenticationActivity.class));
