@@ -227,6 +227,7 @@ public final class OcrCaptureActivity extends AppCompatActivity {
                                 @Override
                                 public void run() {
                                     ((TextView) findViewById(R.id.invoice_number)).setText(invoiceNo);
+                                    Toast.makeText(OcrCaptureActivity.this, "Detected invoice " + invoiceNo, Toast.LENGTH_SHORT).show();
                                 }
                             });
                         }
