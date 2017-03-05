@@ -19,26 +19,12 @@ public class Invoice {
         @Key("Invoice") public List<Invoice> invoices;
     }
 
-    public static class ModificationMetaData {
-        @Key("CreateTime") public DateTime createTime;
-        @Key("LastUpdatedTime") public DateTime lastUpdatedTime;
-    }
-
     public static class CustomField {
         @Key("DefinitionId") public String definitionId;
         @Key("Name") public String name;
         // TODO @Key("Type") public CustomFieldTypeEnum type;
         @Key("StringValue") public String stringValue;
     }
-
-    public static class ReferenceType {
-        public String value;
-        public String name;
-    }
-
-    public static class DepartmentRefType extends ReferenceType {}
-
-    public static class CurrencyRefType extends ReferenceType {}
 
     public static class LinkedTxn {
         @Key("TxnId") public String txnId;
@@ -52,40 +38,40 @@ public class Invoice {
                 @Key("PercentBased") public Boolean percentBased;
                 @Key("Value") public BigDecimal value;
                 @Key("Percent") public BigDecimal percent;
-                @Key("PriceLevelRef") public ReferenceType priceLevelRef;
+                @Key("PriceLevelRef") public Common.ReferenceType priceLevelRef;
             }
 
-            @Key("ItemRef") public ReferenceType itemRef;
-            @Key("ClassRef") public ReferenceType classRef;
+            @Key("ItemRef") public Common.ReferenceType itemRef;
+            @Key("ClassRef") public Common.ReferenceType classRef;
             @Key("UnitPrice") public BigDecimal unitPrice;
             @Key("MarkupInfo") public MarkupInfo markupInfo;
-            @Key("Quantity") public BigDecimal quantity;
-            @Key("TaxCodeRef") public ReferenceType taxCodeRef;
+            @Key("Qty") public BigDecimal quantity;
+            @Key("TaxCodeRef") public Common.ReferenceType taxCodeRef;
             @Key("ServiceDate") public DateTime serviceDate;
             @Key("TaxInclusiveAmt") public BigDecimal taxInclusiveAmt;
         }
 
         public static class GroupLineDetail {
-            @Key("GroupItemRef") public ReferenceType groupItemRef;
+            @Key("GroupItemRef") public Common.ReferenceType groupItemRef;
             @Key("Quantity") public BigDecimal quantity;
             @Key("Line") public List<Line> lines;
         }
 
         public static class DescriptionLineDetail {
             @Key("ServiceDate") public DateTime serviceDate;
-            @Key("TaxCodeRef") public ReferenceType taxCodeRef;
+            @Key("TaxCodeRef") public Common.ReferenceType taxCodeRef;
         }
 
         public static class DiscountLineDetail {
             @Key("PercentBased") public Boolean percentBased;
             @Key("DiscountPercent") public BigDecimal discountPercent;
-            @Key("DiscountAccountRef") public ReferenceType discountAccountRef;
-            @Key("ClassRef") public ReferenceType classRef;
-            @Key("TaxCodeRef") public ReferenceType taxCodeRef;
+            @Key("DiscountAccountRef") public Common.ReferenceType discountAccountRef;
+            @Key("ClassRef") public Common.ReferenceType classRef;
+            @Key("TaxCodeRef") public Common.ReferenceType taxCodeRef;
         }
 
         public static class SubtotalLineDetail {
-            @Key("ItemRef") public ReferenceType itemRef;
+            @Key("ItemRef") public Common.ReferenceType itemRef;
         }
 
         @Key("Id") public String id;
@@ -108,7 +94,7 @@ public class Invoice {
                 @Key("TaxInclusiveAmount") public BigDecimal taxInclusiveAmount;
                 @Key("OverrideDeltaAmount") public BigDecimal overrideDeltaAmount;
                 @Key("TaxPercent") public BigDecimal taxPercent;
-                @Key("TaxRateRef") public ReferenceType taxRateRef;
+                @Key("TaxRateRef") public Common.ReferenceType taxRateRef;
             }
 
             @Key("Amount") public BigDecimal amount;
@@ -116,13 +102,13 @@ public class Invoice {
             @Key("TaxLineDetail") public TaxLineDetail taxLineDetail;
         }
 
-        @Key("TxnTaxCodeRef") public ReferenceType txnTaxCodeRef;
+        @Key("TxnTaxCodeRef") public Common.ReferenceType txnTaxCodeRef;
         @Key("TotalTax") public BigDecimal totalTax;
         @Key("TaxLine") public List<Line> taxLines;
     }
 
     public static class MemoRef {
-        public String value;
+        @Key public String value;
     }
 
     public static class PhysicalAddress {
@@ -151,32 +137,33 @@ public class Invoice {
 
     @Key("Id") public String id;
     @Key("SyncToken") public String syncToken;
-    @Key("MetaData") public ModificationMetaData metaData;
+    @Key("MetaData") public Common.ModificationMetaData metaData;
     @Key("CustomField") public List<CustomField> customFields;
     @Key("DocNumber") public String docNumber;
     @Key("TxnDate") public DateTime txnDate;
-    @Key("DepartmentRef") public DepartmentRefType departmentRef;
-    @Key("CurrencyRef") public CurrencyRefType currencyRef;
+    @Key("DepartmentRef") public Common.DepartmentRefType departmentRef;
+    @Key("CurrencyRef") public Common.CurrencyRefType currencyRef;
     @Key("ExchangeRate") public Integer exchangeRate;
     @Key("PrivateNote") public String privateNote;
     @Key("LinkedTxn") public List<LinkedTxn> linkedTxns;
     @Key("Line") public List<Line> lines;
     @Key("TxnTaxDetail") public TxnTaxDetail txnTaxDetail;
-    @Key("CustomerRef") public ReferenceType customerRef;
+    @Key("CustomerRef") public Common.ReferenceType customerRef;
     @Key("CustomerMemo") public MemoRef customerMemo;
     @Key("BillAddr") public PhysicalAddress billAddr;
     @Key("ShipAddr") public PhysicalAddress shipAddr;
-    @Key("ClassRef") public ReferenceType classRef;
-    @Key("SalesTermRef") public ReferenceType salesTermRef;
+    @Key("ClassRef") public Common.ReferenceType classRef;
+    @Key("SalesTermRef") public Common.ReferenceType salesTermRef;
     @Key("DueDate") public DateTime dueDate;
     @Key("GlobalTaxCalculation") public String globalTaxCalculation; // TODO handle as enum
-    @Key("ShipMethodRef") public ReferenceType shipMethodRef;
+    @Key("ShipMethodRef") public Common.ReferenceType shipMethodRef;
     @Key("ShipDate") public DateTime shipDate;
     @Key("TrackingNum") public String trackingNum;
     @Key("TotalAmt") public BigDecimal totalAmt;
     @Key("HomeTotalAmt") public BigDecimal homeTotalAmt;
     @Key("ApplyTaxAfterDiscount") public Boolean applyTaxAfterDiscount;
     @Key("PrintStatus") public String printStatus;
+    @Key("EmailStatus") public String emailStatus;
     @Key("BillEmail") public EmailAddress billEmail;
     @Key("BillEmailCc") public EmailAddress billEmailCc;
     @Key("BillEmailBcc") public EmailAddress billEmailBcc;
@@ -186,4 +173,5 @@ public class Invoice {
     @Key("TxnSource") public String txnSource;
     @Key("Deposit") public BigDecimal deposit;
     @Key("TransactionLocationType") public String transactionLocationType;
+    @Key public Boolean sparse;
 }

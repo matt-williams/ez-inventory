@@ -137,20 +137,50 @@ public class Locator extends AppCompatActivity implements AdapterView.OnItemSele
             }
         });
 
-//        QuickBooksApi api = new QuickBooksApi.Authenticator(Constants.OAUTH_CONSUMER_KEY, Constants.OAUTH_CONSUMER_SECRET).authenticate();
-//        new QuickBooksApi.GetInvoiceTask(api, Constants.REALM_ID) {
-//            @Override
-//            protected void onPostExecute(Invoice invoice) {
-//                android.util.Log.e("MainActivity", invoice.id + " - " + invoice.lines.get(0).description);
-//            }
-//        }.execute("124");
-//        new QuickBooksApi.QueryInvoicesTask(api, Constants.REALM_ID) {
-//            @Override
-//            protected void onPostExecute(List<Invoice> invoices) {
-//                android.util.Log.e("MainActivity", "How many invoices? " + invoices.size());
-//            }
-//        }.execute();
+        new QuickBooksApi.Authenticator.AuthenticateTask() {
+            @Override
+            protected void onPostExecute(final QuickBooksApi api) {
+                new QuickBooksApi.QueryItemsTask(api) {
+                    @Override
+                    protected void onPostExecute(List<Item> items) {
+                        android.util.Log.e("MainActivity", "Got " + items.size() + " items");
+                        android.util.Log.e("MainActivity", "First item " + items.get(0).description);
+                    }
+                }.execute("SELECT * FROM Item WHERE Type IN ('Inventory','NonInventory')");
 
+                new QuickBooksApi.GetInvoiceTask(api) {
+                    @Override
+                    protected void onPostExecute(Invoice invoice) {
+                        //android.util.Log.e("MainActivity", invoice.id + " - " + invoice.emailStatus);
+                    }
+                }.execute("1015");
+
+                new QuickBooksApi.QueryInvoicesTask(api) {
+                    @Override
+                    protected void onPostExecute(List<Invoice> invoices) {
+                        android.util.Log.e("MainActivity", "How many invoices? " + invoices.size());
+                        Invoice invoice = invoices.get(0);
+                        android.util.Log.e("MainActivity", invoice.id + " - " + invoice.lines.get(0).amount + " - " + invoice.emailStatus);
+                        invoice.shipDate = new DateTime(true, new Date().getTime(), 0);
+                        new QuickBooksApi.UpdateInvoiceTask(api) {
+                            @Override
+                            protected void onPostExecute(Boolean success) {
+                                android.util.Log.e("MainActivity", "Updated successfully? " + success);
+                            }
+                        }.execute(invoice);
+
+                        if (!"EmailSent".equals(invoice.emailStatus)) {
+                            new QuickBooksApi.SendInvoiceTask(api) {
+                                @Override
+                                protected void onPostExecute(Boolean success) {
+                                    android.util.Log.e("MainActivity", "Sent successfully? " + success);
+                                }
+                            }.execute(invoice);
+                        }
+                    }
+                }.execute("SELECT * FROM Invoice WHERE DocNumber = '" + "1015" + "'");
+            }
+        }.execute(new QuickBooksApi.Authenticator(Constants.OAUTH_CONSUMER_KEY, Constants.OAUTH_CONSUMER_SECRET));
     }
 
     private void goToOCR(String loc) {
