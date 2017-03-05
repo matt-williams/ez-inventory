@@ -196,39 +196,6 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
         barcodeDetector.setProcessor(
                 new MultiProcessor.Builder<>(barcodeFactory).build());
 
-        // Retrieve invoice
-        new QuickBooksApi.QueryInvoicesTask(mApi) {
-            @Override
-            protected void onPostExecute(List<Invoice> invoices) {
-                android.util.Log.e("MainActivity", "How many invoices? " + invoices.size());
-                if (!invoices.isEmpty()) {
-                    Invoice invoice = invoices.get(0);
-                    List<Invoice.Line> items = invoice.lines;
-                    for (Invoice.Line item : items) {
-                        ((TextView) findViewById(R.id.item_id)).setText(item.description);
-
-                    }
-                    android.util.Log.e("MainActivity", invoice.id + " - " + invoice.lines.get(0).amount + " - " + invoice.emailStatus);
-                    invoice.shipDate = new DateTime(true, new Date().getTime(), 0);
-                    new QuickBooksApi.UpdateInvoiceTask(mApi) {
-                        @Override
-                        protected void onPostExecute(Boolean success) {
-                            android.util.Log.e("MainActivity", "Updated successfully? " + success);
-                        }
-                    }.execute(invoice);
-
-                    if (!"EmailSent".equals(invoice.emailStatus)) {
-                        new QuickBooksApi.SendInvoiceTask(mApi) {
-                            @Override
-                            protected void onPostExecute(Boolean success) {
-                                android.util.Log.e("MainActivity", "Sent successfully? " + success);
-                            }
-                        }.execute(invoice);
-                    }
-                }
-            }
-        }.execute("SELECT * FROM Invoice WHERE DocNumber = '" + invoiceNo + "'");
-
         if (!barcodeDetector.isOperational()) {
             // Note: The first time that an app using the barcode or face API is installed on a
             // device, GMS will download a native libraries to the device in order to do detection.
@@ -284,8 +251,39 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
             new QuickBooksApi.CheckConnectionTask(mApi) {
                 @Override
                 protected void onPostExecute(Boolean success) {
-                    if (success) {
+                    if (Boolean.TRUE.equals(success)) {
                         startCameraSource();
+                        // Retrieve invoice
+                        new QuickBooksApi.QueryInvoicesTask(mApi) {
+                            @Override
+                            protected void onPostExecute(List<Invoice> invoices) {
+                                if (invoices != null && !invoices.isEmpty()) {
+                                    Invoice invoice = invoices.get(0);
+                                    List<Invoice.Line> items = invoice.lines;
+                                    for (Invoice.Line item : items) {
+                                        ((TextView) findViewById(R.id.item_id)).setText(item.description);
+
+                                    }
+                                    android.util.Log.e("MainActivity", invoice.id + " - " + invoice.lines.get(0).amount + " - " + invoice.emailStatus);
+                                    invoice.shipDate = new DateTime(true, new Date().getTime(), 0);
+                                    new QuickBooksApi.UpdateInvoiceTask(mApi) {
+                                        @Override
+                                        protected void onPostExecute(Boolean success) {
+                                            android.util.Log.e("MainActivity", "Updated successfully? " + success);
+                                        }
+                                    }.execute(invoice);
+
+                                    if (!"EmailSent".equals(invoice.emailStatus)) {
+                                        new QuickBooksApi.SendInvoiceTask(mApi) {
+                                            @Override
+                                            protected void onPostExecute(Boolean success) {
+                                                android.util.Log.e("MainActivity", "Sent successfully? " + success);
+                                            }
+                                        }.execute(invoice);
+                                    }
+                                }
+                            }
+                        }.execute("SELECT * FROM Invoice WHERE DocNumber = '" + invoiceNo + "'");
                     } else {
                         mApi = null;
                         startActivity(new Intent(BarcodeCaptureActivity.this, AuthenticationActivity.class));
