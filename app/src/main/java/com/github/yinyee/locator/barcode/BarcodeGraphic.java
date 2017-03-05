@@ -1,4 +1,4 @@
-package com.github.yinyee.locator;
+package com.github.yinyee.locator.barcode;
 
 import android.graphics.Canvas;
 import android.graphics.Color;

@@ -1,13 +1,16 @@
-package com.github.yinyee.locator;
+package com.github.yinyee.locator.barcode;
 
 import android.content.Intent;
 import android.os.Bundle;
 import android.app.Activity;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.TextView;
 
+import com.github.yinyee.locator.R;
+import com.github.yinyee.locator.estimote.Locator;
 import com.google.android.gms.common.api.CommonStatusCodes;
 import com.google.android.gms.vision.barcode.Barcode;
 
@@ -29,15 +32,16 @@ public class BarcodeMainActivity extends Activity implements View.OnClickListene
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_locator);
 
-        statusMessage = (TextView)findViewById(R.id.status_message);
-        barcodeValue = (TextView)findViewById(R.id.barcode_value);
-
-        autoFocus = (CompoundButton) findViewById(R.id.auto_focus);
-        useFlash = (CompoundButton) findViewById(R.id.use_flash);
-
-        findViewById(R.id.read_barcode).setOnClickListener(this);
+        Button btnBarcode = (Button) findViewById(R.id.btn_barcode);
+        btnBarcode.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent scanBarcode = new Intent(BarcodeMainActivity.this, BarcodeCaptureActivity.class);
+                startActivity(scanBarcode);
+            }
+        });
     }
 
     /**

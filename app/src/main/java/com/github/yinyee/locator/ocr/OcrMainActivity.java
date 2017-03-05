@@ -1,4 +1,4 @@
-package com.github.yinyee.locator;
+package com.github.yinyee.locator.ocr;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -8,6 +8,7 @@ import android.view.View;
 import android.widget.CompoundButton;
 import android.widget.TextView;
 
+import com.github.yinyee.locator.R;
 import com.google.android.gms.common.api.CommonStatusCodes;
 
 /**

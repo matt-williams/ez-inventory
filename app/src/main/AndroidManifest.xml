@@ -6,7 +6,7 @@
     <uses-permission android:name="android.permission.CAMERA" />
 
     <application
-        android:name=".EZLocator"
+        android:name=".EZInventory"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -14,7 +14,7 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
-         <activity android:name=".Locator">
+         <activity android:name=".estimote.Locator">
              <intent-filter>
                  <action android:name="android.intent.action.MAIN" />
                  <category android:name="android.intent.category.LAUNCHER" />
@@ -25,10 +25,10 @@
              </intent-filter>
          </activity>
 
-         <activity android:name=".BarcodeMainActivity"/>
-         <activity android:name=".BarcodeCaptureActivity"/>
-         <activity android:name=".OcrMainActivity"/>
-         <activity android:name=".OcrCaptureActivity"/>
+         <activity android:name=".barcode.BarcodeMainActivity"/>
+         <activity android:name=".barcode.BarcodeCaptureActivity"/>
+         <activity android:name=".ocr.OcrMainActivity"/>
+         <activity android:name=".ocr.OcrCaptureActivity"/>
 
 </application>
 

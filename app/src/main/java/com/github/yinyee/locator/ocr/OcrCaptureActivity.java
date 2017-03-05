@@ -1,4 +1,4 @@
-package com.github.yinyee.locator;
+package com.github.yinyee.locator.ocr;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
@@ -11,55 +11,70 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.hardware.Camera;
-import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.util.SparseArray;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import com.github.yinyee.locator.R;
+import com.github.yinyee.locator.barcode.BarcodeMainActivity;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.common.api.CommonStatusCodes;
-import com.github.yinyee.locator.ui.camera.barcode.CameraSource;
-import com.github.yinyee.locator.ui.camera.barcode.CameraSourcePreview;
-import com.github.yinyee.locator.ui.camera.barcode.GraphicOverlay;
-import com.google.android.gms.vision.MultiProcessor;
-import com.google.android.gms.vision.barcode.Barcode;
-import com.google.android.gms.vision.barcode.BarcodeDetector;
+import com.github.yinyee.locator.ui.camera.ocr.CameraSource;
+import com.github.yinyee.locator.ui.camera.ocr.CameraSourcePreview;
+import com.github.yinyee.locator.ui.camera.ocr.GraphicOverlay;
+import com.google.android.gms.vision.Detector;
+import com.google.android.gms.vision.text.Text;
+import com.google.android.gms.vision.text.TextBlock;
+import com.google.android.gms.vision.text.TextRecognizer;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.RunnableFuture;
+import java.util.logging.LogRecord;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
- * Activity for the multi-tracker app.  This app detects barcodes and displays the value with the
+ * Activity for the multi-tracker app.  This app detects text and displays the value with the
  * rear facing camera. During detection overlay graphics are drawn to indicate the position,
- * size, and ID of each barcode.
+ * size, and contents of each TextBlock.
  */
-public final class BarcodeCaptureActivity extends AppCompatActivity {
-    private static final String TAG = "Barcode-reader";
+public final class OcrCaptureActivity extends AppCompatActivity {
 
-    // intent request code to handle updating play services if needed.
+    private Handler mHandler = new Handler();
+
+    private static final String TAG = "OcrCaptureActivity";
+
+    // Intent request code to handle updating play services if needed.
     private static final int RC_HANDLE_GMS = 9001;
 
-    // permission request codes need to be < 256
+    // Permission request codes need to be < 256
     private static final int RC_HANDLE_CAMERA_PERM = 2;
 
-    // constants used to pass extra data in the intent
+    // Constants used to pass extra data in the intent
     public static final String AutoFocus = "AutoFocus";
     public static final String UseFlash = "UseFlash";
-    public static final String BarcodeObject = "Barcode";
+    public static final String TextBlockObject = "String";
 
     private CameraSource mCameraSource;
     private CameraSourcePreview mPreview;
-    private GraphicOverlay<BarcodeGraphic> mGraphicOverlay;
+    private GraphicOverlay<OcrGraphic> mGraphicOverlay;
 
-    // helper objects for detecting taps and pinches.
+    private static final Pattern pattern = Pattern.compile("\\s*INVOICE\\s*NO.\\s*(\\d+)\\s*");
+
+    // Helper objects for detecting taps and pinches.
     private ScaleGestureDetector scaleGestureDetector;
     private GestureDetector gestureDetector;
 
@@ -69,14 +84,14 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
     @Override
     public void onCreate(Bundle icicle) {
         super.onCreate(icicle);
-        setContentView(R.layout.barcode_capture);
+        setContentView(R.layout.activity_locator);
 
         mPreview = (CameraSourcePreview) findViewById(R.id.preview);
-        mGraphicOverlay = (GraphicOverlay<BarcodeGraphic>) findViewById(R.id.graphicOverlay);
+        mGraphicOverlay = (GraphicOverlay<OcrGraphic>) findViewById(R.id.graphicOverlay);
 
         // read parameters from the intent used to launch the activity.
-        boolean autoFocus = getIntent().getBooleanExtra(AutoFocus, false);
-        boolean useFlash = getIntent().getBooleanExtra(UseFlash, false);
+        boolean autoFocus = true;
+        boolean useFlash = false;
 
         // Check for the camera permission before accessing the camera.  If the
         // permission is not granted yet, request permission.
@@ -121,7 +136,6 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
             }
         };
 
-        findViewById(R.id.topLayout).setOnClickListener(listener);
         Snackbar.make(mGraphicOverlay, R.string.permission_camera_rationale,
                 Snackbar.LENGTH_INDEFINITE)
                 .setAction(R.string.ok, listener)
@@ -139,7 +153,7 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
 
     /**
      * Creates and starts the camera.  Note that this uses a higher resolution in comparison
-     * to other detection examples to enable the barcode detector to detect small barcodes
+     * to other detection examples to enable the ocr detector to detect small text samples
      * at long distances.
      *
      * Suppressing InlinedApi since there is a check that the minimum version is met before using
@@ -149,21 +163,51 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
     private void createCameraSource(boolean autoFocus, boolean useFlash) {
         Context context = getApplicationContext();
 
-        // A barcode detector is created to track barcodes.  An associated multi-processor instance
-        // is set to receive the barcode detection results, track the barcodes, and maintain
-        // graphics for each barcode on screen.  The factory is used by the multi-processor to
-        // create a separate tracker instance for each barcode.
-        BarcodeDetector barcodeDetector = new BarcodeDetector.Builder(context).build();
-        BarcodeTrackerFactory barcodeFactory = new BarcodeTrackerFactory(mGraphicOverlay);
-        barcodeDetector.setProcessor(
-                new MultiProcessor.Builder<>(barcodeFactory).build());
+        // A text recognizer is created to find text.  An associated processor instance
+        // is set to receive the text recognition results and display graphics for each text block
+        // on screen.
+        TextRecognizer textRecognizer = new TextRecognizer.Builder(context).build();
+//        textRecognizer.setProcessor(new OcrDetectorProcessor(mGraphicOverlay));
+        textRecognizer.setProcessor(new Detector.Processor<TextBlock>() {
+            @Override
+            public void release() {
 
-        if (!barcodeDetector.isOperational()) {
-            // Note: The first time that an app using the barcode or face API is installed on a
+            }
+
+            @Override
+            public void receiveDetections(Detector.Detections<TextBlock> detections) {
+                SparseArray<TextBlock> items = detections.getDetectedItems();
+                for (int i = 0; i < items.size(); ++i) {
+                    TextBlock item = items.valueAt(i);
+                    List<? extends Text> textComponents = item.getComponents();
+                    for (Text currentText : textComponents) {
+                        Matcher matcher = pattern.matcher(currentText.getValue());
+                        if (matcher.matches()) {
+                            final String invoiceNo = matcher.group(1);
+                            mHandler.post(new Runnable(){
+                                @Override
+                                public void run() {
+                                    ((TextView) findViewById(R.id.invoice_number)).setText(invoiceNo);
+                                    Intent goToBarcode = new Intent(OcrCaptureActivity.this, BarcodeMainActivity.class);
+                                    goToBarcode.putExtra("INVOICE_NO", invoiceNo);
+                                    startActivity(goToBarcode);
+                                }
+                            });
+                        }
+                    }
+                }
+            }
+
+            ;
+
+        });
+
+        if (!textRecognizer.isOperational()) {
+            // Note: The first time that an app using a Vision API is installed on a
             // device, GMS will download a native libraries to the device in order to do detection.
             // Usually this completes before the app is run for the first time.  But if that
-            // download has not yet completed, then the above call will not detect any barcodes
-            // and/or faces.
+            // download has not yet completed, then the above call will not detect any text,
+            // barcodes, or faces.
             //
             // isOperational() can be used to check if the required native libraries are currently
             // available.  The detectors will automatically become operational once the library
@@ -182,22 +226,15 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
         }
 
         // Creates and starts the camera.  Note that this uses a higher resolution in comparison
-        // to other detection examples to enable the barcode detector to detect small barcodes
-        // at long distances.
-        CameraSource.Builder builder = new CameraSource.Builder(getApplicationContext(), barcodeDetector)
-                .setFacing(CameraSource.CAMERA_FACING_BACK)
-                .setRequestedPreviewSize(1600, 1024)
-                .setRequestedFps(15.0f);
-
-        // make sure that auto focus is an available option
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
-            builder = builder.setFocusMode(
-                    autoFocus ? Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE : null);
-        }
-
-        mCameraSource = builder
-                .setFlashMode(useFlash ? Camera.Parameters.FLASH_MODE_TORCH : null)
-                .build();
+        // to other detection examples to enable the text recognizer to detect small pieces of text.
+        mCameraSource =
+                new CameraSource.Builder(getApplicationContext(), textRecognizer)
+                        .setFacing(CameraSource.CAMERA_FACING_BACK)
+                        .setRequestedPreviewSize(1280, 1024)
+                        .setRequestedFps(2.0f)
+                        .setFlashMode(useFlash ? Camera.Parameters.FLASH_MODE_TORCH : null)
+                        .setFocusMode(autoFocus ? Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE : null)
+                        .build();
     }
 
     /**
@@ -260,7 +297,7 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
 
         if (grantResults.length != 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
             Log.d(TAG, "Camera permission granted - initialize the camera source");
-            // we have permission, so create the camerasource
+            // We have permission, so create the camerasource
             boolean autoFocus = getIntent().getBooleanExtra(AutoFocus,false);
             boolean useFlash = getIntent().getBooleanExtra(UseFlash, false);
             createCameraSource(autoFocus, useFlash);
@@ -289,7 +326,7 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
      * again when the camera source is created.
      */
     private void startCameraSource() throws SecurityException {
-        // check that the device has play services available.
+        // Check that the device has play services available.
         int code = GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(
                 getApplicationContext());
         if (code != ConnectionResult.SUCCESS) {
@@ -298,7 +335,7 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
             dlg.show();
         }
 
-        if (mCameraSource != null ) {
+        if (mCameraSource != null) {
             try {
                 mPreview.start(mCameraSource, mGraphicOverlay);
             } catch (IOException e) {
@@ -310,49 +347,36 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
     }
 
     /**
-     * onTap returns the tapped barcode result to the calling Activity.
+     * onTap is called to capture the first TextBlock under the tap location and return it to
+     * the Initializing Activity.
      *
      * @param rawX - the raw position of the tap
      * @param rawY - the raw position of the tap.
      * @return true if the activity is ending.
      */
     private boolean onTap(float rawX, float rawY) {
-        // Find tap point in preview frame coordinates.
-        int[] location = new int[2];
-        mGraphicOverlay.getLocationOnScreen(location);
-        float x = (rawX - location[0]) / mGraphicOverlay.getWidthScaleFactor();
-        float y = (rawY - location[1]) / mGraphicOverlay.getHeightScaleFactor();
-
-        // Find the barcode whose center is closest to the tapped point.
-        Barcode best = null;
-        float bestDistance = Float.MAX_VALUE;
-        for (BarcodeGraphic graphic : mGraphicOverlay.getGraphics()) {
-            Barcode barcode = graphic.getBarcode();
-            if (barcode.getBoundingBox().contains((int) x, (int) y)) {
-                // Exact hit, no need to keep looking.
-                best = barcode;
-                break;
+        OcrGraphic graphic = mGraphicOverlay.getGraphicAtLocation(rawX, rawY);
+        TextBlock text = null;
+        if (graphic != null) {
+            text = graphic.getTextBlock();
+            if (text != null && text.getValue() != null) {
+                Intent data = new Intent();
+                data.putExtra(TextBlockObject, text.getValue());
+                setResult(CommonStatusCodes.SUCCESS, data);
+                finish();
             }
-            float dx = x - barcode.getBoundingBox().centerX();
-            float dy = y - barcode.getBoundingBox().centerY();
-            float distance = (dx * dx) + (dy * dy);  // actually squared distance
-            if (distance < bestDistance) {
-                best = barcode;
-                bestDistance = distance;
+            else {
+                Log.d(TAG, "text data is null");
             }
         }
-
-        if (best != null) {
-            Intent data = new Intent();
-            data.putExtra(BarcodeObject, best);
-            setResult(CommonStatusCodes.SUCCESS, data);
-            finish();
-            return true;
+        else {
+            Log.d(TAG,"no text detected");
         }
-        return false;
+        return text != null;
     }
 
     private class CaptureGestureListener extends GestureDetector.SimpleOnGestureListener {
+
         @Override
         public boolean onSingleTapConfirmed(MotionEvent e) {
             return onTap(e.getRawX(), e.getRawY()) || super.onSingleTapConfirmed(e);

@@ -1,4 +1,4 @@
-package com.github.yinyee.locator;
+package com.github.yinyee.locator.barcode;
 
 import com.github.yinyee.locator.ui.camera.barcode.GraphicOverlay;
 import com.google.android.gms.vision.MultiProcessor;

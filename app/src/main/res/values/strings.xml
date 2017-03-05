@@ -17,4 +17,14 @@
     <string name="ocr_success">Text read successfully</string>
     <string name="ocr_failure">No text captured</string>
     <string name="ocr_error">"Error reading text: %1$s"</string>
+    <string name="location_detection">Location detection mode: </string>
+    <string name="location_context">Location context: </string>
+    <string name="not_detected">Not detected</string>
+    <string name="invoice">Invoice number: </string>
+    <string name="invoice_number">1163</string>
+    <string-array name="location_contexts">
+        <item>GOODS IN</item>
+        <item>GOODS OUT</item>
+        <item>AUTO</item>
+    </string-array>
 </resources>

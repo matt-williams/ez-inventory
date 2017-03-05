@@ -1,10 +1,13 @@
-package com.github.yinyee.locator;
+package com.github.yinyee.locator.ocr;
 
+import android.content.Intent;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
 
+import com.github.yinyee.locator.EZInventory;
+import com.github.yinyee.locator.barcode.BarcodeMainActivity;
 import com.github.yinyee.locator.ui.camera.ocr.GraphicOverlay;
 import com.google.android.gms.vision.text.Text;
 import com.google.android.gms.vision.text.TextBlock;
@@ -21,7 +24,6 @@ public class OcrGraphic extends GraphicOverlay.Graphic {
 
     private int mId;
 
-    private static final String INVOICE_NO = "INVOICE NO.";
     private static final Pattern pattern = Pattern.compile("\\s*INVOICE\\s*NO.\\s*(\\d+)\\s*");
     private Matcher matcher;
     private String invoiceNo;
