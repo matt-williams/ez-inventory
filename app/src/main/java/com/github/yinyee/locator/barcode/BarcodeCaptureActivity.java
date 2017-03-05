@@ -106,7 +106,6 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 Intent scanBarcode = new Intent(BarcodeCaptureActivity.this, ProgressActivity.class);
-                mSavedInstanceState = new Bundle();
                 mSavedInstanceState.putString("LOCATION_CONTEXT", loc);
                 mSavedInstanceState.putString("DETECT_MODE", String.valueOf(mode));
                 mSavedInstanceState.putString("INVOICE_NO", invoiceNo);
@@ -269,19 +268,14 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
                                     for (Invoice.Line item : items) {
                                         if ("SalesItemLineDetail".equals(item.detailType)) {
                                             List<String> quantities = new ArrayList<>();
+                                            // Position 0 is for scanned quantity
                                             quantities.add(String.valueOf(0));
+                                            // Position 1 is for expected quantity
                                             quantities.add(String.valueOf(item.salesItemLineDetail.quantity));
                                             mSavedInstanceState.putStringArray(item.description, quantities.toArray(new String[0]));
                                         }
                                     }
                                     android.util.Log.e("MainActivity", invoice.id + " - " + invoice.lines.get(0).amount + " - " + invoice.emailStatus);
-                                    invoice.shipDate = new DateTime(true, new Date().getTime(), 0);
-                                    new QuickBooksApi.UpdateInvoiceTask(mApi) {
-                                        @Override
-                                        protected void onPostExecute(Boolean success) {
-                                            android.util.Log.e("MainActivity", "Updated successfully? " + success);
-                                        }
-                                    }.execute(invoice);
                                 }
                             }
                         }.execute("SELECT * FROM Invoice WHERE DocNumber = '" + invoiceNo + "'");
