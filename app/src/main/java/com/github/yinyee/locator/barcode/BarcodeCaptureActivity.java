@@ -215,7 +215,7 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
                     final Barcode barcode = items.valueAt(ii);
                     if ((barcode != null) && barcode.rawValue != null) {
                         String barcodeKey = barcode.displayValue.replaceAll("[^0-9A-F]", "");
-                        android.util.Log.e(TAG, "Got barcode with key " + barcode.rawValue + " => " + barcodeKey);
+                        android.util.Log.e(TAG, "Got barcode with key " + barcode.displayValue + " => " + barcodeKey);
                         for (String key : mSavedInstanceState.keySet()) {
                             if (key.contains(barcodeKey)) {
                                 android.util.Log.e(TAG, "Found barcode key in result set");
