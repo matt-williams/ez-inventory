@@ -88,14 +88,14 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        mSavedInstanceState = savedInstanceState;
         setContentView(R.layout.inventory);
 
         Intent intent = getIntent();
+        mSavedInstanceState = intent.getExtras();
 
-        loc = savedInstanceState.getString("LOCATION_CONTEXT");
-        invoiceNo = savedInstanceState.getString("INVOICE_NO");
-        mode = savedInstanceState.getString("DETECT_MODE");
+        loc = mSavedInstanceState.getString("LOCATION_CONTEXT");
+        invoiceNo = mSavedInstanceState.getString("INVOICE_NO");
+        mode = mSavedInstanceState.getString("DETECT_MODE");
 
         ((TextView) findViewById(R.id.location)).setText(loc);
         ((TextView) findViewById(R.id.invoice_number)).setText(invoiceNo);
@@ -110,7 +110,7 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
                 mSavedInstanceState.putString("DETECT_MODE", String.valueOf(mode));
                 mSavedInstanceState.putString("INVOICE_NO", invoiceNo);
                 scanBarcode.putExtras(mSavedInstanceState);
-                startActivity(scanBarcode);
+                startActivity(scanBarcode, mSavedInstanceState);
             }
         });
 

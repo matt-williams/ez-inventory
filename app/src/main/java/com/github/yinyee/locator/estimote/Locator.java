@@ -81,10 +81,12 @@ public class Locator extends AppCompatActivity implements AdapterView.OnItemSele
             public void onClick(View v) {
                 String loc = ((TextView) findViewById(R.id.location)).getText().toString();
                 Intent goToOCR = new Intent(Locator.this, OcrCaptureActivity.class);
+                android.util.Log.e("Locator", "location: ");
+                android.util.Log.e("Locator", loc);
                 mSavedInstanceState.putString("LOCATION_CONTEXT", loc);
                 mSavedInstanceState.putString("DETECT_MODE", String.valueOf(mode));
                 goToOCR.putExtras(mSavedInstanceState);
-                startActivity(goToOCR);
+                startActivity(goToOCR, mSavedInstanceState);
             }
         });
 

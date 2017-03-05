@@ -29,15 +29,18 @@ public class ProgressActivity extends AppCompatActivity {
     private String invoiceNo;
     private LinearLayout ll;
     private LinearLayout.LayoutParams tvLayoutParamsLeft, tvLayoutParamsRight;
+    private Bundle mSavedInstanceState;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         Intent intent = getIntent();
-        String mode = intent.getStringExtra("DETECT_MODE");
-        String loc = intent.getStringExtra("LOCATION_CONTEXT");
-        invoiceNo = intent.getStringExtra("INVOICE_NO");
+        mSavedInstanceState = intent.getExtras();
+
+        String mode = mSavedInstanceState.getString("DETECT_MODE");
+        String loc = mSavedInstanceState.getString("LOCATION_CONTEXT");
+        invoiceNo = mSavedInstanceState.getString("INVOICE_NO");
 
         ScrollView scroll = new ScrollView(this);
         ll = new LinearLayout(this);
@@ -191,7 +194,7 @@ public class ProgressActivity extends AppCompatActivity {
                                     TextView tvQty = new TextView(ProgressActivity.this);
                                     tvQty.setLayoutParams(tvLayoutParamsRight);
                                     tvQty.setPadding(8,8,8,8);
-                                    tvQty.setText("Quantity");
+                                    tvQty.setText("Scanned / Quantity");
                                     tvQty.setTypeface(Typeface.DEFAULT_BOLD);
                                     ll.addView(tvQty);
 
@@ -206,7 +209,9 @@ public class ProgressActivity extends AppCompatActivity {
                                             TextView tvLineAmount = new TextView(ProgressActivity.this);
                                             tvLineAmount.setLayoutParams(tvLayoutParamsRight);
                                             tvLineAmount.setPadding(8,8,8,8);
-                                            tvLineAmount.setText(String.valueOf(item.salesItemLineDetail.quantity));
+                                            String[] quantities = mSavedInstanceState.getStringArray(item.description);
+                                            String output = quantities[0] + " / " + quantities[1];
+                                            tvLineAmount.setText(output);
                                             ll.addView(tvLineAmount);
                                         }
                                     }
