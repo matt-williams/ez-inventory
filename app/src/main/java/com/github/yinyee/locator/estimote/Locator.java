@@ -178,6 +178,13 @@ public class Locator extends AppCompatActivity implements AdapterView.OnItemSele
         }
     }
 
+    @Override
+    protected void onPause() {
+        beaconManager.disconnect();
+        beaconManager.setRangingListener(null);
+        super.onPause();
+    }
+
     public void showNotification(String title, String message) {
 
         Intent notifyIntent = new Intent(this, EZInventory.class);
