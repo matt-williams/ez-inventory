@@ -13,6 +13,7 @@ import android.content.pm.PackageManager;
 import android.hardware.Camera;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
@@ -60,6 +61,7 @@ import java.util.Map;
  */
 public final class BarcodeCaptureActivity extends AppCompatActivity {
     private static final String TAG = "Barcode-reader";
+    private Handler mHandler = new Handler();
 
     // intent request code to handle updating play services if needed.
     private static final int RC_HANDLE_GMS = 9001;
@@ -210,7 +212,7 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
             public void receiveDetections(Detector.Detections<Barcode> detections) {
                 SparseArray<Barcode> items = detections.getDetectedItems();
                 for (int ii = 0; ii < items.size(); ii++) {
-                    Barcode barcode = items.get(ii);
+                    final Barcode barcode = items.valueAt(ii);
                     if ((barcode != null) && barcode.rawValue != null) {
                         String barcodeKey = barcode.displayValue.replaceAll("[^0-9A-F]", "");
                         android.util.Log.e(TAG, "Got barcode with key " + barcode.rawValue + " => " + barcodeKey);
@@ -218,7 +220,11 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
                             if (key.contains(barcodeKey)) {
                                 android.util.Log.e(TAG, "Found barcode key in result set");
                                 mSavedInstanceState.getStringArray(key)[0] = "1";
-                                Toast.makeText(BarcodeCaptureActivity.this, "Detected barcode " + barcode.displayValue, Toast.LENGTH_SHORT).show();
+                                mHandler.post(new Runnable() {
+                                    public void run() {
+                                        Toast.makeText(BarcodeCaptureActivity.this, "Detected barcode " + barcode.displayValue, Toast.LENGTH_SHORT).show();
+                                    }
+                                });
                             }
                         }
                     }
