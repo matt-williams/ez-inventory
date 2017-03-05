@@ -17,17 +17,23 @@ import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.util.SparseArray;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.github.yinyee.locator.R;
+import com.github.yinyee.locator.barcode.BarcodeCaptureActivity;
 import com.github.yinyee.locator.barcode.BarcodeMainActivity;
+import com.github.yinyee.locator.estimote.Locator;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.common.api.CommonStatusCodes;
@@ -55,6 +61,8 @@ public final class OcrCaptureActivity extends AppCompatActivity {
 
     private Handler mHandler = new Handler();
 
+    private String invoiceNo;
+
     private static final String TAG = "OcrCaptureActivity";
 
     // Intent request code to handle updating play services if needed.
@@ -78,6 +86,9 @@ public final class OcrCaptureActivity extends AppCompatActivity {
     private ScaleGestureDetector scaleGestureDetector;
     private GestureDetector gestureDetector;
 
+    private String loc;
+    private int mode;
+
     /**
      * Initializes the UI and creates the detector pipeline.
      */
@@ -85,6 +96,34 @@ public final class OcrCaptureActivity extends AppCompatActivity {
     public void onCreate(Bundle icicle) {
         super.onCreate(icicle);
         setContentView(R.layout.activity_locator);
+
+        Intent intent = getIntent();
+        loc = intent.getStringExtra("LOCATION_CONTEXT");
+        ((TextView) findViewById(R.id.location)).setText(loc);
+        mode = Integer.valueOf(intent.getStringExtra("DETECT_MODE"));
+        ((Spinner) findViewById(R.id.location_detection_mode)).post(new Runnable() {
+            @Override
+            public void run() {
+                Spinner spinner = ((Spinner) findViewById(R.id.location_detection_mode));
+                ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(OcrCaptureActivity.this, R.array.location_contexts, android.R.layout.simple_spinner_dropdown_item);
+                spinner.setAdapter(adapter);
+                spinner.setSelection(mode);
+            }
+        });
+
+        Button btnScan = (Button) findViewById(R.id.btn_barcode);
+        btnScan.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent goToBarcode = new Intent(OcrCaptureActivity.this, BarcodeCaptureActivity.class);
+                goToBarcode.putExtra("LOCATION_CONTEXT", loc);
+                String newMode = ((Spinner) findViewById(R.id.location_detection_mode)).getSelectedItem().toString();
+                goToBarcode.putExtra("DETECT_MODE", newMode);
+                goToBarcode.putExtra("INVOICE_NO", invoiceNo);
+                onPause();
+                startActivity(goToBarcode);
+            }
+        });
 
         mPreview = (CameraSourcePreview) findViewById(R.id.preview);
         mGraphicOverlay = (GraphicOverlay<OcrGraphic>) findViewById(R.id.graphicOverlay);
@@ -183,14 +222,11 @@ public final class OcrCaptureActivity extends AppCompatActivity {
                     for (Text currentText : textComponents) {
                         Matcher matcher = pattern.matcher(currentText.getValue());
                         if (matcher.matches()) {
-                            final String invoiceNo = matcher.group(1);
+                            invoiceNo = matcher.group(1);
                             mHandler.post(new Runnable(){
                                 @Override
                                 public void run() {
                                     ((TextView) findViewById(R.id.invoice_number)).setText(invoiceNo);
-                                    Intent goToBarcode = new Intent(OcrCaptureActivity.this, BarcodeMainActivity.class);
-                                    goToBarcode.putExtra("INVOICE_NO", invoiceNo);
-                                    startActivity(goToBarcode);
                                 }
                             });
                         }

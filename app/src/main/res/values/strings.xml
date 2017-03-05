@@ -21,7 +21,15 @@
     <string name="location_context">Location context: </string>
     <string name="not_detected">Not detected</string>
     <string name="invoice">Invoice number: </string>
-    <string name="invoice_number">1163</string>
+    <string name="invoice_number">0000</string>
+    <string name="scan_barcodes">Scan barcodes</string>
+    <string name="item">Item ID</string>
+    <string name="item_id">0000</string>
+    <string name="total">Total items for this invoice</string>
+    <string name="total_number">10</string>
+    <string name="scanned">Number of items scanned</string>
+    <string name="scanned_number">7</string>
+    <string name="progress">View progress</string>
     <string-array name="location_contexts">
         <item>GOODS IN</item>
         <item>GOODS OUT</item>

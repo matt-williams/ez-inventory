@@ -19,14 +19,16 @@ import com.estimote.sdk.BeaconManager;
 import com.estimote.sdk.Region;
 import com.estimote.sdk.SystemRequirementsChecker;
 import com.estimote.sdk.Utils;
-import com.github.yinyee.locator.barcode.BarcodeMainActivity;
 import com.github.yinyee.locator.EZInventory;
 import com.github.yinyee.locator.ocr.OcrCaptureActivity;
 import com.github.yinyee.locator.R;
 import com.github.yinyee.locator.quickbooks.Constants;
 import com.github.yinyee.locator.quickbooks.Invoice;
+import com.github.yinyee.locator.quickbooks.Item;
 import com.github.yinyee.locator.quickbooks.QuickBooksApi;
+import com.google.api.client.util.DateTime;
 
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
@@ -48,12 +50,13 @@ public class Locator extends AppCompatActivity implements AdapterView.OnItemSele
             62826,
             65526
     );
-    private static String location;
+
     private static Utils.Proximity GOODS_IN_PROXIMITY;
     private static Utils.Proximity GOODS_OUT_PROXIMITY;
     private static int GOODS_IN_RSSI;
     private static int GOODS_OUT_RSSI;
     private BeaconManager beaconManager;
+    private int mode;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -66,6 +69,18 @@ public class Locator extends AppCompatActivity implements AdapterView.OnItemSele
         spinner.setAdapter(adapter);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinner.setOnItemSelectedListener(this);
+
+        Button btnConfirmLocation = (Button) findViewById(R.id.confirm_location);
+        btnConfirmLocation.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String loc = ((TextView) findViewById(R.id.location)).getText().toString();
+                Intent goToOCR = new Intent(Locator.this, OcrCaptureActivity.class);
+                goToOCR.putExtra("LOCATION_CONTEXT", loc);
+                goToOCR.putExtra("DETECT_MODE", String.valueOf(mode));
+                startActivity(goToOCR);
+            }
+        });
 
         beaconManager = new BeaconManager(getApplicationContext());
 
@@ -84,8 +99,7 @@ public class Locator extends AppCompatActivity implements AdapterView.OnItemSele
 
                 String loc = "NOT DETECTED";
 
-                String mode = ((Spinner) findViewById(R.id.location_detection_mode)).getSelectedItem().toString();
-                if (mode.compareTo("AUTO") == 0) {
+                if (mode == 2) {
 
                     if (!list.isEmpty()) {
                         Beacon beacon = list.get(0);
@@ -103,17 +117,13 @@ public class Locator extends AppCompatActivity implements AdapterView.OnItemSele
 
                         if (GOODS_IN_PROXIMITY == Utils.Proximity.IMMEDIATE && GOODS_OUT_PROXIMITY != Utils.Proximity.IMMEDIATE) {
                             loc = "GOODS IN";
-                            goToOCR(loc);
                         } else if (GOODS_IN_PROXIMITY != Utils.Proximity.IMMEDIATE && GOODS_OUT_PROXIMITY == Utils.Proximity.IMMEDIATE) {
                             loc = "GOODS OUT";
-                            goToOCR(loc);
                         } else if (GOODS_IN_PROXIMITY == Utils.Proximity.IMMEDIATE && GOODS_OUT_PROXIMITY == Utils.Proximity.IMMEDIATE) {
                             if (GOODS_IN_RSSI < GOODS_OUT_RSSI) {
                                 loc = "GOODS OUT";
-                                goToOCR(loc);
                             } else {
                                 loc = "GOODS IN";
-                                goToOCR(loc);
                             }
                         } else {
                             loc = "NOT DETECTED";
@@ -131,62 +141,10 @@ public class Locator extends AppCompatActivity implements AdapterView.OnItemSele
                 } else {
                     loc = ((Spinner) findViewById(R.id.location_detection_mode)).getSelectedItem().toString();
                     ((TextView) findViewById(R.id.location)).setText(loc);
-                    goToOCR(loc);
                 }
 
             }
         });
-
-        new QuickBooksApi.Authenticator.AuthenticateTask() {
-            @Override
-            protected void onPostExecute(final QuickBooksApi api) {
-                new QuickBooksApi.QueryItemsTask(api) {
-                    @Override
-                    protected void onPostExecute(List<Item> items) {
-                        android.util.Log.e("MainActivity", "Got " + items.size() + " items");
-                        android.util.Log.e("MainActivity", "First item " + items.get(0).description);
-                    }
-                }.execute("SELECT * FROM Item WHERE Type IN ('Inventory','NonInventory')");
-
-                new QuickBooksApi.GetInvoiceTask(api) {
-                    @Override
-                    protected void onPostExecute(Invoice invoice) {
-                        //android.util.Log.e("MainActivity", invoice.id + " - " + invoice.emailStatus);
-                    }
-                }.execute("1015");
-
-                new QuickBooksApi.QueryInvoicesTask(api) {
-                    @Override
-                    protected void onPostExecute(List<Invoice> invoices) {
-                        android.util.Log.e("MainActivity", "How many invoices? " + invoices.size());
-                        Invoice invoice = invoices.get(0);
-                        android.util.Log.e("MainActivity", invoice.id + " - " + invoice.lines.get(0).amount + " - " + invoice.emailStatus);
-                        invoice.shipDate = new DateTime(true, new Date().getTime(), 0);
-                        new QuickBooksApi.UpdateInvoiceTask(api) {
-                            @Override
-                            protected void onPostExecute(Boolean success) {
-                                android.util.Log.e("MainActivity", "Updated successfully? " + success);
-                            }
-                        }.execute(invoice);
-
-                        if (!"EmailSent".equals(invoice.emailStatus)) {
-                            new QuickBooksApi.SendInvoiceTask(api) {
-                                @Override
-                                protected void onPostExecute(Boolean success) {
-                                    android.util.Log.e("MainActivity", "Sent successfully? " + success);
-                                }
-                            }.execute(invoice);
-                        }
-                    }
-                }.execute("SELECT * FROM Invoice WHERE DocNumber = '" + "1015" + "'");
-            }
-        }.execute(new QuickBooksApi.Authenticator(Constants.OAUTH_CONSUMER_KEY, Constants.OAUTH_CONSUMER_SECRET));
-    }
-
-    private void goToOCR(String loc) {
-        Intent readTextFromImage = new Intent(Locator.this, OcrCaptureActivity.class);
-        readTextFromImage.putExtra("LOCATION_CONTEXT", loc);
-        startActivity(readTextFromImage);
     }
 
     @Override
@@ -217,7 +175,7 @@ public class Locator extends AppCompatActivity implements AdapterView.OnItemSele
 
     @Override
     public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-        ((Spinner) findViewById(R.id.location_detection_mode)).setSelection(position);
+        mode = ((Spinner) findViewById(R.id.location_detection_mode)).getSelectedItemPosition();
     }
 
     @Override

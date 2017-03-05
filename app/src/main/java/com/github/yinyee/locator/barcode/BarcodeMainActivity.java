@@ -5,12 +5,14 @@ import android.os.Bundle;
 import android.app.Activity;
 import android.util.Log;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CompoundButton;
+import android.widget.Spinner;
 import android.widget.TextView;
 
+import com.github.yinyee.locator.ProgressActivity;
 import com.github.yinyee.locator.R;
-import com.github.yinyee.locator.estimote.Locator;
 import com.google.android.gms.common.api.CommonStatusCodes;
 import com.google.android.gms.vision.barcode.Barcode;
 
@@ -26,22 +28,17 @@ public class BarcodeMainActivity extends Activity implements View.OnClickListene
     private TextView statusMessage;
     private TextView barcodeValue;
 
+    private String loc;
+    private String invoiceNo;
+    private String mode;
+
     private static final int RC_BARCODE_CAPTURE = 9001;
     private static final String TAG = "BarcodeMain";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_locator);
-
-        Button btnBarcode = (Button) findViewById(R.id.btn_barcode);
-        btnBarcode.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent scanBarcode = new Intent(BarcodeMainActivity.this, BarcodeCaptureActivity.class);
-                startActivity(scanBarcode);
-            }
-        });
+        setContentView(R.layout.barcode_capture);
     }
 
     /**

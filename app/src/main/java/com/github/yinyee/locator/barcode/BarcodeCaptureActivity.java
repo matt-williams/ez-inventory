@@ -22,9 +22,16 @@ import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
+import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import com.github.yinyee.locator.ProgressActivity;
 import com.github.yinyee.locator.R;
+import com.github.yinyee.locator.quickbooks.Constants;
+import com.github.yinyee.locator.quickbooks.Invoice;
+import com.github.yinyee.locator.quickbooks.Item;
+import com.github.yinyee.locator.quickbooks.QuickBooksApi;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.common.api.CommonStatusCodes;
@@ -34,8 +41,11 @@ import com.github.yinyee.locator.ui.camera.barcode.GraphicOverlay;
 import com.google.android.gms.vision.MultiProcessor;
 import com.google.android.gms.vision.barcode.Barcode;
 import com.google.android.gms.vision.barcode.BarcodeDetector;
+import com.google.api.client.util.DateTime;
 
 import java.io.IOException;
+import java.util.Date;
+import java.util.List;
 
 /**
  * Activity for the multi-tracker app.  This app detects barcodes and displays the value with the
@@ -64,13 +74,36 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
     private ScaleGestureDetector scaleGestureDetector;
     private GestureDetector gestureDetector;
 
+    private String invoiceNo, loc, mode;
+
     /**
      * Initializes the UI and creates the detector pipeline.
      */
     @Override
     public void onCreate(Bundle icicle) {
         super.onCreate(icicle);
-        setContentView(R.layout.barcode_capture);
+        setContentView(R.layout.inventory);
+
+        Intent intent = getIntent();
+        loc = intent.getStringExtra("LOCATION_CONTEXT");
+        invoiceNo = intent.getStringExtra("INVOICE_NO");
+        mode = intent.getStringExtra("DETECT_MODE");
+
+        ((TextView) findViewById(R.id.location)).setText(loc);
+        ((TextView) findViewById(R.id.invoice_number)).setText(invoiceNo);
+        ((TextView) findViewById(R.id.location_detection_mode)).setText(mode);
+
+        Button btnBarcode = (Button) findViewById(R.id.btn_progress);
+        btnBarcode.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent scanBarcode = new Intent(BarcodeCaptureActivity.this, ProgressActivity.class);
+                scanBarcode.putExtra("LOCATION_CONTEXT", loc);
+                scanBarcode.putExtra("DETECT_MODE", String.valueOf(mode));
+                scanBarcode.putExtra("INVOICE_NO", invoiceNo);
+                startActivity(scanBarcode);
+            }
+        });
 
         mPreview = (CameraSourcePreview) findViewById(R.id.preview);
         mGraphicOverlay = (GraphicOverlay<BarcodeGraphic>) findViewById(R.id.graphicOverlay);
@@ -91,9 +124,9 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
         gestureDetector = new GestureDetector(this, new CaptureGestureListener());
         scaleGestureDetector = new ScaleGestureDetector(this, new ScaleListener());
 
-        Snackbar.make(mGraphicOverlay, "Tap to capture. Pinch/Stretch to zoom",
-                Snackbar.LENGTH_LONG)
-                .show();
+//        Snackbar.make(mGraphicOverlay, "Tap to capture. Pinch/Stretch to zoom",
+//                Snackbar.LENGTH_LONG)
+//                .show();
     }
 
     /**
@@ -158,6 +191,44 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
         BarcodeTrackerFactory barcodeFactory = new BarcodeTrackerFactory(mGraphicOverlay);
         barcodeDetector.setProcessor(
                 new MultiProcessor.Builder<>(barcodeFactory).build());
+
+        // Retrieve invoice
+        new QuickBooksApi.Authenticator.AuthenticateTask() {
+            @Override
+            protected void onPostExecute(final QuickBooksApi api) {
+                new QuickBooksApi.QueryInvoicesTask(api) {
+                    @Override
+                    protected void onPostExecute(List<Invoice> invoices) {
+                        android.util.Log.e("MainActivity", "How many invoices? " + invoices.size());
+                        if (!invoices.isEmpty()) {
+                            Invoice invoice = invoices.get(0);
+                            List<Invoice.Line> items = invoice.lines;
+                            for (Invoice.Line item : items) {
+                                ((TextView) findViewById(R.id.item_id)).setText(item.description);
+
+                            }
+                            android.util.Log.e("MainActivity", invoice.id + " - " + invoice.lines.get(0).amount + " - " + invoice.emailStatus);
+                            invoice.shipDate = new DateTime(true, new Date().getTime(), 0);
+                            new QuickBooksApi.UpdateInvoiceTask(api) {
+                                @Override
+                                protected void onPostExecute(Boolean success) {
+                                    android.util.Log.e("MainActivity", "Updated successfully? " + success);
+                                }
+                            }.execute(invoice);
+
+                            if (!"EmailSent".equals(invoice.emailStatus)) {
+                                new QuickBooksApi.SendInvoiceTask(api) {
+                                    @Override
+                                    protected void onPostExecute(Boolean success) {
+                                        android.util.Log.e("MainActivity", "Sent successfully? " + success);
+                                    }
+                                }.execute(invoice);
+                            }
+                        }
+                    }
+                }.execute("SELECT * FROM Invoice WHERE DocNumber = '" + invoiceNo + "'");
+            }
+        }.execute(new QuickBooksApi.Authenticator(Constants.OAUTH_CONSUMER_KEY, Constants.OAUTH_CONSUMER_SECRET));
 
         if (!barcodeDetector.isOperational()) {
             // Note: The first time that an app using the barcode or face API is installed on a
