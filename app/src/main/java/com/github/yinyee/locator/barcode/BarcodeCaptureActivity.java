@@ -18,6 +18,7 @@ import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.util.SparseArray;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
@@ -39,6 +40,7 @@ import com.google.android.gms.common.api.CommonStatusCodes;
 import com.github.yinyee.locator.ui.camera.barcode.CameraSource;
 import com.github.yinyee.locator.ui.camera.barcode.CameraSourcePreview;
 import com.github.yinyee.locator.ui.camera.barcode.GraphicOverlay;
+import com.google.android.gms.vision.Detector;
 import com.google.android.gms.vision.MultiProcessor;
 import com.google.android.gms.vision.barcode.Barcode;
 import com.google.android.gms.vision.barcode.BarcodeDetector;
@@ -198,9 +200,29 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
         // graphics for each barcode on screen.  The factory is used by the multi-processor to
         // create a separate tracker instance for each barcode.
         BarcodeDetector barcodeDetector = new BarcodeDetector.Builder(context).build();
-        BarcodeTrackerFactory barcodeFactory = new BarcodeTrackerFactory(mGraphicOverlay);
-        barcodeDetector.setProcessor(
-                new MultiProcessor.Builder<>(barcodeFactory).build());
+//        BarcodeTrackerFactory barcodeFactory = new BarcodeTrackerFactory(mGraphicOverlay);
+//        barcodeDetector.setProcessor(
+//                new MultiProcessor.Builder<>(barcodeFactory).build());
+        barcodeDetector.setProcessor(new Detector.Processor<Barcode>() {
+            @Override
+            public void release() {}
+
+            @Override
+            public void receiveDetections(Detector.Detections<Barcode> detections) {
+                SparseArray<Barcode> items = detections.getDetectedItems();
+                for (int ii = 0; ii < items.size(); ii++) {
+                    Barcode barcode = items.get(ii);
+                    String barcodeKey = barcode.rawValue.replaceAll("[^0-9A-F]", "");
+                    android.util.Log.e(TAG, "Got barcode with key " + barcode.rawValue + " => " + barcodeKey);
+                    for (String key : mSavedInstanceState.keySet()) {
+                        if (key.contains(barcodeKey)) {
+                            android.util.Log.e(TAG, "Found barcode key in result set");
+                            mSavedInstanceState.getStringArray(key)[0] = "1";
+                        }
+                    }
+                }
+            }
+        });
 
         if (!barcodeDetector.isOperational()) {
             // Note: The first time that an app using the barcode or face API is installed on a
