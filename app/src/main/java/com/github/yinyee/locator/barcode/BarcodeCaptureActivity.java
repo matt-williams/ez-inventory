@@ -211,13 +211,14 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
                 SparseArray<Barcode> items = detections.getDetectedItems();
                 for (int ii = 0; ii < items.size(); ii++) {
                     Barcode barcode = items.get(ii);
-                    if (barcode.rawValue != null) {
-                        String barcodeKey = barcode.rawValue.replaceAll("[^0-9A-F]", "");
+                    if ((barcode != null) && barcode.rawValue != null) {
+                        String barcodeKey = barcode.displayValue.replaceAll("[^0-9A-F]", "");
                         android.util.Log.e(TAG, "Got barcode with key " + barcode.rawValue + " => " + barcodeKey);
                         for (String key : mSavedInstanceState.keySet()) {
                             if (key.contains(barcodeKey)) {
                                 android.util.Log.e(TAG, "Found barcode key in result set");
                                 mSavedInstanceState.getStringArray(key)[0] = "1";
+                                Toast.makeText(BarcodeCaptureActivity.this, "Detected barcode " + barcode.displayValue, Toast.LENGTH_SHORT).show();
                             }
                         }
                     }
