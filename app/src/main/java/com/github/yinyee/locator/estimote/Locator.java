@@ -5,6 +5,7 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
@@ -19,6 +20,8 @@ import com.estimote.sdk.BeaconManager;
 import com.estimote.sdk.Region;
 import com.estimote.sdk.SystemRequirementsChecker;
 import com.estimote.sdk.Utils;
+import com.github.yinyee.locator.AuthenticationActivity;
+import com.github.yinyee.locator.barcode.BarcodeMainActivity;
 import com.github.yinyee.locator.EZInventory;
 import com.github.yinyee.locator.ocr.OcrCaptureActivity;
 import com.github.yinyee.locator.R;
@@ -83,7 +86,9 @@ public class Locator extends AppCompatActivity implements AdapterView.OnItemSele
         });
 
         beaconManager = new BeaconManager(getApplicationContext());
+    }
 
+    private void initializeBeacons() {
         beaconManager.connect(new BeaconManager.ServiceReadyCallback() {
             @Override
             public void onServiceReady() {
@@ -151,6 +156,22 @@ public class Locator extends AppCompatActivity implements AdapterView.OnItemSele
     protected void onResume() {
         super.onResume();
         SystemRequirementsChecker.checkWithDefaultDialogs(this);
+        QuickBooksApi.Authenticator authenticator = new QuickBooksApi.Authenticator(this, Constants.OAUTH_CONSUMER_KEY, Constants.OAUTH_CONSUMER_SECRET);
+        QuickBooksApi api = authenticator.tryExistingCredentials();
+        if (api != null) {
+            new QuickBooksApi.CheckConnectionTask(api) {
+                @Override
+                protected void onPostExecute(Boolean success) {
+                    if (success) {
+                        initializeBeacons();
+                    } else {
+                        startActivity(new Intent(Locator.this, AuthenticationActivity.class));
+                    }
+                }
+            }.execute();
+        } else {
+            startActivity(new Intent(Locator.this, AuthenticationActivity.class));
+        }
     }
 
     public void showNotification(String title, String message) {

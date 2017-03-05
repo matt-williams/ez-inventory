@@ -26,8 +26,11 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.estimote.sdk.SystemRequirementsChecker;
+import com.github.yinyee.locator.AuthenticationActivity;
 import com.github.yinyee.locator.ProgressActivity;
 import com.github.yinyee.locator.R;
+import com.github.yinyee.locator.estimote.Locator;
 import com.github.yinyee.locator.quickbooks.Constants;
 import com.github.yinyee.locator.quickbooks.Invoice;
 import com.github.yinyee.locator.quickbooks.Item;
@@ -75,6 +78,7 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
     private GestureDetector gestureDetector;
 
     private String invoiceNo, loc, mode;
+    private QuickBooksApi mApi;
 
     /**
      * Initializes the UI and creates the detector pipeline.
@@ -193,42 +197,37 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
                 new MultiProcessor.Builder<>(barcodeFactory).build());
 
         // Retrieve invoice
-        new QuickBooksApi.Authenticator.AuthenticateTask() {
+        new QuickBooksApi.QueryInvoicesTask(mApi) {
             @Override
-            protected void onPostExecute(final QuickBooksApi api) {
-                new QuickBooksApi.QueryInvoicesTask(api) {
-                    @Override
-                    protected void onPostExecute(List<Invoice> invoices) {
-                        android.util.Log.e("MainActivity", "How many invoices? " + invoices.size());
-                        if (!invoices.isEmpty()) {
-                            Invoice invoice = invoices.get(0);
-                            List<Invoice.Line> items = invoice.lines;
-                            for (Invoice.Line item : items) {
-                                ((TextView) findViewById(R.id.item_id)).setText(item.description);
+            protected void onPostExecute(List<Invoice> invoices) {
+                android.util.Log.e("MainActivity", "How many invoices? " + invoices.size());
+                if (!invoices.isEmpty()) {
+                    Invoice invoice = invoices.get(0);
+                    List<Invoice.Line> items = invoice.lines;
+                    for (Invoice.Line item : items) {
+                        ((TextView) findViewById(R.id.item_id)).setText(item.description);
 
-                            }
-                            android.util.Log.e("MainActivity", invoice.id + " - " + invoice.lines.get(0).amount + " - " + invoice.emailStatus);
-                            invoice.shipDate = new DateTime(true, new Date().getTime(), 0);
-                            new QuickBooksApi.UpdateInvoiceTask(api) {
-                                @Override
-                                protected void onPostExecute(Boolean success) {
-                                    android.util.Log.e("MainActivity", "Updated successfully? " + success);
-                                }
-                            }.execute(invoice);
-
-                            if (!"EmailSent".equals(invoice.emailStatus)) {
-                                new QuickBooksApi.SendInvoiceTask(api) {
-                                    @Override
-                                    protected void onPostExecute(Boolean success) {
-                                        android.util.Log.e("MainActivity", "Sent successfully? " + success);
-                                    }
-                                }.execute(invoice);
-                            }
-                        }
                     }
-                }.execute("SELECT * FROM Invoice WHERE DocNumber = '" + invoiceNo + "'");
+                    android.util.Log.e("MainActivity", invoice.id + " - " + invoice.lines.get(0).amount + " - " + invoice.emailStatus);
+                    invoice.shipDate = new DateTime(true, new Date().getTime(), 0);
+                    new QuickBooksApi.UpdateInvoiceTask(mApi) {
+                        @Override
+                        protected void onPostExecute(Boolean success) {
+                            android.util.Log.e("MainActivity", "Updated successfully? " + success);
+                        }
+                    }.execute(invoice);
+
+                    if (!"EmailSent".equals(invoice.emailStatus)) {
+                        new QuickBooksApi.SendInvoiceTask(mApi) {
+                            @Override
+                            protected void onPostExecute(Boolean success) {
+                                android.util.Log.e("MainActivity", "Sent successfully? " + success);
+                            }
+                        }.execute(invoice);
+                    }
+                }
             }
-        }.execute(new QuickBooksApi.Authenticator(Constants.OAUTH_CONSUMER_KEY, Constants.OAUTH_CONSUMER_SECRET));
+        }.execute("SELECT * FROM Invoice WHERE DocNumber = '" + invoiceNo + "'");
 
         if (!barcodeDetector.isOperational()) {
             // Note: The first time that an app using the barcode or face API is installed on a
@@ -278,9 +277,26 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        startCameraSource();
+        SystemRequirementsChecker.checkWithDefaultDialogs(this);
+        QuickBooksApi.Authenticator authenticator = new QuickBooksApi.Authenticator(this, Constants.OAUTH_CONSUMER_KEY, Constants.OAUTH_CONSUMER_SECRET);
+        mApi = authenticator.tryExistingCredentials();
+        if (mApi != null) {
+            new QuickBooksApi.CheckConnectionTask(mApi) {
+                @Override
+                protected void onPostExecute(Boolean success) {
+                    if (success) {
+                        startCameraSource();
+                    } else {
+                        mApi = null;
+                        startActivity(new Intent(BarcodeCaptureActivity.this, AuthenticationActivity.class));
+                    }
+                }
+            }.execute();
+        } else {
+            startActivity(new Intent(BarcodeCaptureActivity.this, AuthenticationActivity.class));
+        }
     }
-
+    
     /**
      * Stops the camera.
      */

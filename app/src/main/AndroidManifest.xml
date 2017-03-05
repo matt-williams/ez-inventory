@@ -25,11 +25,11 @@
              </intent-filter>
          </activity>
 
+         <activity android:name=".AuthenticationActivity"/>
          <activity android:name=".barcode.BarcodeMainActivity"/>
          <activity android:name=".barcode.BarcodeCaptureActivity"/>
          <activity android:name=".ocr.OcrMainActivity"/>
          <activity android:name=".ocr.OcrCaptureActivity"/>
-
-</application>
+    </application>
 
 </manifest>
