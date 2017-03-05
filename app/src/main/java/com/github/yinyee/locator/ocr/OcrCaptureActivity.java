@@ -93,14 +93,16 @@ public final class OcrCaptureActivity extends AppCompatActivity {
      * Initializes the UI and creates the detector pipeline.
      */
     @Override
-    public void onCreate(Bundle icicle) {
-        super.onCreate(icicle);
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_locator);
 
         Intent intent = getIntent();
-        loc = intent.getStringExtra("LOCATION_CONTEXT");
+
+        loc = savedInstanceState.getString("LOCATION_CONTEXT");
         ((TextView) findViewById(R.id.location)).setText(loc);
-        mode = Integer.valueOf(intent.getStringExtra("DETECT_MODE"));
+
+        mode = Integer.valueOf(savedInstanceState.getString("DETECT_MODE"));
         ((Spinner) findViewById(R.id.location_detection_mode)).post(new Runnable() {
             @Override
             public void run() {
@@ -116,10 +118,11 @@ public final class OcrCaptureActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 Intent goToBarcode = new Intent(OcrCaptureActivity.this, BarcodeCaptureActivity.class);
-                goToBarcode.putExtra("LOCATION_CONTEXT", loc);
-                String newMode = ((Spinner) findViewById(R.id.location_detection_mode)).getSelectedItem().toString();
-                goToBarcode.putExtra("DETECT_MODE", newMode);
-                goToBarcode.putExtra("INVOICE_NO", invoiceNo);
+                Bundle savedInstanceState = new Bundle();
+                savedInstanceState.putString("LOCATION_CONTEXT", loc);
+                savedInstanceState.putString("DETECT_MODE", ((Spinner) findViewById(R.id.location_detection_mode)).getSelectedItem().toString());
+                savedInstanceState.putString("INVOICE_NO", invoiceNo);
+                goToBarcode.putExtras(savedInstanceState);
                 onPause();
                 startActivity(goToBarcode);
             }

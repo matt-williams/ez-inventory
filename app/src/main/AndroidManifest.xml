@@ -30,6 +30,7 @@
          <activity android:name=".barcode.BarcodeCaptureActivity"/>
          <activity android:name=".ocr.OcrMainActivity"/>
          <activity android:name=".ocr.OcrCaptureActivity"/>
+         <activity android:name=".ProgressActivity"/>
     </application>
 
 </manifest>

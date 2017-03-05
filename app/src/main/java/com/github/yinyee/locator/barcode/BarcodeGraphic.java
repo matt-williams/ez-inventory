@@ -4,7 +4,9 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
+import android.widget.Toast;
 
+import com.github.yinyee.locator.ProgressActivity;
 import com.github.yinyee.locator.ui.camera.barcode.GraphicOverlay;
 import com.google.android.gms.vision.barcode.Barcode;
 

@@ -30,10 +30,8 @@ import com.estimote.sdk.SystemRequirementsChecker;
 import com.github.yinyee.locator.AuthenticationActivity;
 import com.github.yinyee.locator.ProgressActivity;
 import com.github.yinyee.locator.R;
-import com.github.yinyee.locator.estimote.Locator;
 import com.github.yinyee.locator.quickbooks.Constants;
 import com.github.yinyee.locator.quickbooks.Invoice;
-import com.github.yinyee.locator.quickbooks.Item;
 import com.github.yinyee.locator.quickbooks.QuickBooksApi;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
@@ -47,8 +45,11 @@ import com.google.android.gms.vision.barcode.BarcodeDetector;
 import com.google.api.client.util.DateTime;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Activity for the multi-tracker app.  This app detects barcodes and displays the value with the
@@ -79,19 +80,22 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
 
     private String invoiceNo, loc, mode;
     private QuickBooksApi mApi;
+    private Bundle mSavedInstanceState;
 
     /**
      * Initializes the UI and creates the detector pipeline.
      */
     @Override
-    public void onCreate(Bundle icicle) {
-        super.onCreate(icicle);
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        mSavedInstanceState = savedInstanceState;
         setContentView(R.layout.inventory);
 
         Intent intent = getIntent();
-        loc = intent.getStringExtra("LOCATION_CONTEXT");
-        invoiceNo = intent.getStringExtra("INVOICE_NO");
-        mode = intent.getStringExtra("DETECT_MODE");
+
+        loc = savedInstanceState.getString("LOCATION_CONTEXT");
+        invoiceNo = savedInstanceState.getString("INVOICE_NO");
+        mode = savedInstanceState.getString("DETECT_MODE");
 
         ((TextView) findViewById(R.id.location)).setText(loc);
         ((TextView) findViewById(R.id.invoice_number)).setText(invoiceNo);
@@ -102,9 +106,11 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 Intent scanBarcode = new Intent(BarcodeCaptureActivity.this, ProgressActivity.class);
-                scanBarcode.putExtra("LOCATION_CONTEXT", loc);
-                scanBarcode.putExtra("DETECT_MODE", String.valueOf(mode));
-                scanBarcode.putExtra("INVOICE_NO", invoiceNo);
+                mSavedInstanceState = new Bundle();
+                mSavedInstanceState.putString("LOCATION_CONTEXT", loc);
+                mSavedInstanceState.putString("DETECT_MODE", String.valueOf(mode));
+                mSavedInstanceState.putString("INVOICE_NO", invoiceNo);
+                scanBarcode.putExtras(mSavedInstanceState);
                 startActivity(scanBarcode);
             }
         });
@@ -261,8 +267,12 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
                                     Invoice invoice = invoices.get(0);
                                     List<Invoice.Line> items = invoice.lines;
                                     for (Invoice.Line item : items) {
-                                        ((TextView) findViewById(R.id.item_id)).setText(item.description);
-
+                                        if ("SalesItemLineDetail".equals(item.detailType)) {
+                                            List<String> quantities = new ArrayList<>();
+                                            quantities.add(String.valueOf(0));
+                                            quantities.add(String.valueOf(item.salesItemLineDetail.quantity));
+                                            mSavedInstanceState.putStringArray(item.description, quantities.toArray(new String[0]));
+                                        }
                                     }
                                     android.util.Log.e("MainActivity", invoice.id + " - " + invoice.lines.get(0).amount + " - " + invoice.emailStatus);
                                     invoice.shipDate = new DateTime(true, new Date().getTime(), 0);
@@ -272,15 +282,6 @@ public final class BarcodeCaptureActivity extends AppCompatActivity {
                                             android.util.Log.e("MainActivity", "Updated successfully? " + success);
                                         }
                                     }.execute(invoice);
-
-                                    if (!"EmailSent".equals(invoice.emailStatus)) {
-                                        new QuickBooksApi.SendInvoiceTask(mApi) {
-                                            @Override
-                                            protected void onPostExecute(Boolean success) {
-                                                android.util.Log.e("MainActivity", "Sent successfully? " + success);
-                                            }
-                                        }.execute(invoice);
-                                    }
                                 }
                             }
                         }.execute("SELECT * FROM Invoice WHERE DocNumber = '" + invoiceNo + "'");

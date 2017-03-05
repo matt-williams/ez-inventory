@@ -62,7 +62,7 @@ public class Locator extends AppCompatActivity implements AdapterView.OnItemSele
     private int mode;
 
     @Override
-    public void onCreate(Bundle savedInstanceState) {
+    public void onCreate(final Bundle savedInstanceState) {
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_locator);
@@ -79,8 +79,9 @@ public class Locator extends AppCompatActivity implements AdapterView.OnItemSele
             public void onClick(View v) {
                 String loc = ((TextView) findViewById(R.id.location)).getText().toString();
                 Intent goToOCR = new Intent(Locator.this, OcrCaptureActivity.class);
-                goToOCR.putExtra("LOCATION_CONTEXT", loc);
-                goToOCR.putExtra("DETECT_MODE", String.valueOf(mode));
+                savedInstanceState.putString("LOCATION_CONTEXT", loc);
+                savedInstanceState.putString("DETECT_MODE", String.valueOf(mode));
+                goToOCR.putExtras(savedInstanceState);
                 startActivity(goToOCR);
             }
         });
@@ -112,7 +113,6 @@ public class Locator extends AppCompatActivity implements AdapterView.OnItemSele
                         if (region.getIdentifier().compareTo(GOODS_IN) == 0) {
                             GOODS_IN_RSSI = beacon.getRssi();
                             GOODS_IN_PROXIMITY = Utils.computeProximity(beacon);
-
                         }
 
                         if (region.getIdentifier().compareTo(GOODS_OUT) == 0) {
@@ -202,6 +202,6 @@ public class Locator extends AppCompatActivity implements AdapterView.OnItemSele
     @Override
     public void onNothingSelected(AdapterView<?> parent) {
         // set to AUTO
-        ((Spinner) findViewById(R.id.location_detection_mode)).setSelection(0);
+        ((Spinner) findViewById(R.id.location_detection_mode)).setSelection(2);
     }
 }
